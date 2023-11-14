@@ -156,7 +156,7 @@ router.post("/products", authMiddleware, async (req, res) => {
 // 상품 수정
 router.put("/products/:Id", authMiddleware, async (req, res) => {
   const { Id } = req.params;
-  const { title, content, status, userId } = req.body;
+  const { title, content, status } = req.body;
   const existsProducts = await Products.findOne({ where: { id: Id } });
   const userIdCHhk = res.locals.user.id;
 
@@ -186,7 +186,7 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
     }
 
     // 사용자iD 일치여부
-    if (userId === userIdCHhk) {
+    if (Number(existsProducts.userId) === userIdCHhk) {
       await Products.update(
         { title, content, status },
         {
@@ -215,7 +215,6 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
 // 상품 삭제
 router.delete("/products/:Id", authMiddleware, async (req, res) => {
   const { Id } = req.params;
-  const { userId } = req.body;
   const existsProducts = await Products.findOne({ where: { id: Id } });
   const userIdCHhk = res.locals.user.id;
 
@@ -237,7 +236,7 @@ router.delete("/products/:Id", authMiddleware, async (req, res) => {
     }
 
     // 사용자ID 일치여부
-    if (userId === userIdCHhk) {
+    if (Number(existsProducts.userId) === userIdCHhk) {
       // 삭제 진행
       await Products.destroy({ where: { id: Id } });
 
