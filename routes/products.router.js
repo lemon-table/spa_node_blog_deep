@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
+const isInErrMessage = "Validation isIn on status failed";
 
 //인증결과
 const authMiddleware = require("../middlewares/auth-middleware.js");
@@ -160,8 +160,6 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
     const existsProducts = await Products.findOne({ where: { id: Id } });
     const userIdCHhk = res.locals.user.id;
 
-    console.log("existsProducts:" + existsProducts);
-
     //productId 공백 확인
     if (existsProducts === null) {
       let errMsg = "데이터 형식이 올바르지 않습니다.";
@@ -177,15 +175,6 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
         errorMessage: errMsg
       });
     }
-
-    //
-    /*
-    if (status !== "FOR_SALE" && status !== "SOLD_OUT") {
-      return res.status(409).json({
-        success: false,
-        errorMessage: "상품의 상태는 FOR_SALE, SOLD_OUT만 기입 가능합니다."
-      });
-    }*/
 
     // 사용자iD 일치여부
     if (Number(existsProducts.userId) === userIdCHhk) {
@@ -208,9 +197,18 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500).send({
+    let errorMessage = error;
+    let statusNum = 500;
+
+    // 상품 상태 체크
+    if (error.errors[0].message.includes(isInErrMessage)) {
+      statusNum = 409;
+      errorMessage = "상품의 상태는 FOR_SALE, SOLD_OUT만 기입 가능합니다.";
+    }
+
+    res.status(statusNum).send({
       sucess: false,
-      errerMessage: error
+      errorMessage: errorMessage
     });
   }
 });
