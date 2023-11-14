@@ -21,9 +21,13 @@ module.exports = (sequelize, DataTypes) => {
       userId: DataTypes.STRING,
       title: DataTypes.STRING,
       content: DataTypes.STRING,
-      author: DataTypes.STRING,
-      password: DataTypes.STRING,
-      status: DataTypes.STRING,
+      status: {
+        type: DataTypes.STRING,
+        defaultValue: "FOR_SALE",
+        validate: {
+          isIn: [["FOR_SALE", "SOLD_OUT"]]
+        }
+      },
       createdAt: DataTypes.DATE
     },
     {

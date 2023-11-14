@@ -15,8 +15,9 @@ router.get("/", (req, res) => {
 // 상품 목록 조회
 router.get("/products", async (req, res) => {
   const { sort } = req.query;
-  let sortOption = ["createdAt", "DESC"]; //default 최신순
-  sortOption = sort && sort.toUpperCase() === "ASC" ? [["createdAt", "ASC"]] : [["createdAt", "DESC"]];
+
+  let sortText = sort && sort.toUpperCase() === "ASC" ? "ASC" : "DESC"; //default 최신순
+  let sortOption = [["createdAt", sortText]];
 
   try {
     const user = await User.findAll({});
@@ -24,8 +25,6 @@ router.get("/products", async (req, res) => {
       id: item.id,
       nickname: item.nickname
     }));
-
-    const attributes = ["id"];
 
     const productList = await Products.findAll({
       order: sortOption // Query String에 따라 대문자로 받아 정렬 방식 변경
@@ -37,7 +36,7 @@ router.get("/products", async (req, res) => {
       userId: item.userId,
       title: item.title,
       content: item.content,
-      nickname: item.author,
+      nickname: null,
       status: item.status,
       createdAt: item.createdAt
     }));
@@ -47,12 +46,12 @@ router.get("/products", async (req, res) => {
       // userList에서 userId와 일치하는 id를 가진 사용자 찾기
       const user = userList.find((user) => user.id === Number(item.userId));
 
-      // userList에서 찾은 사용자의 nickname을 resultList nickname으로 추가
+      // userList에서 찾은 사용자의 nickname을 resultList nickname으로 변경
       if (user) {
         item.nickname = user.nickname;
       }
 
-      // userId 속성 삭제
+      // userId 속성 삭제(조회 안되도 되는 정보)
       delete item.userId;
     });
 
@@ -123,10 +122,9 @@ router.get("/products/:Id", async (req, res) => {
 
 // 상품 등록
 router.post("/products", authMiddleware, async (req, res) => {
-  const { title, content, author, password } = req.body;
+  const { title, content } = req.body;
 
-  // 상품 입력을 위한 id, 시간 가져오기
-  const status = "FOR_SALE";
+  // 상품 입력을 위한 id 가져오기
   const userId = res.locals.user.id;
 
   try {
@@ -139,7 +137,7 @@ router.post("/products", authMiddleware, async (req, res) => {
 
     let createdAt = new Date();
 
-    const createdProducts = await Products.create({ userId, title, content, author, password, status, createdAt });
+    const createdProducts = await Products.create({ userId, title, content, createdAt });
     res.json({
       success: true,
       message: "상품 등록되었습니다.",
@@ -157,10 +155,13 @@ router.post("/products", authMiddleware, async (req, res) => {
 router.put("/products/:Id", authMiddleware, async (req, res) => {
   const { Id } = req.params;
   const { title, content, status } = req.body;
-  const existsProducts = await Products.findOne({ where: { id: Id } });
-  const userIdCHhk = res.locals.user.id;
 
   try {
+    const existsProducts = await Products.findOne({ where: { id: Id } });
+    const userIdCHhk = res.locals.user.id;
+
+    console.log("existsProducts:" + existsProducts);
+
     //productId 공백 확인
     if (existsProducts === null) {
       let errMsg = "데이터 형식이 올바르지 않습니다.";
@@ -178,12 +179,13 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
     }
 
     //
+    /*
     if (status !== "FOR_SALE" && status !== "SOLD_OUT") {
       return res.status(409).json({
         success: false,
         errorMessage: "상품의 상태는 FOR_SALE, SOLD_OUT만 기입 가능합니다."
       });
-    }
+    }*/
 
     // 사용자iD 일치여부
     if (Number(existsProducts.userId) === userIdCHhk) {
