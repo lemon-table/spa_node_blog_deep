@@ -187,6 +187,7 @@ router.put("/products/:Id", authMiddleware, async (req, res) => {
 
     // 사용자iD 일치여부
     if (Number(existsProducts.userId) === userIdCHhk) {
+      //Products 테이블과 res.locals.user 비교
       await Products.update(
         { title, content, status },
         {
@@ -237,6 +238,7 @@ router.delete("/products/:Id", authMiddleware, async (req, res) => {
 
     // 사용자ID 일치여부
     if (Number(existsProducts.userId) === userIdCHhk) {
+      //Products 테이블과 res.locals.user 비교
       // 삭제 진행
       await Products.destroy({ where: { id: Id } });
 
