@@ -27,7 +27,6 @@ function verifyPassword(password, hash, salt) {
 }
 
 //회원가입
-const { Op } = require("sequelize");
 const { User } = require("../models");
 
 router.post("/users", async (req, res) => {
@@ -38,6 +37,15 @@ router.post("/users", async (req, res) => {
   const createdAt = new Date();
 
   try {
+    // 비밀번호 확인 체크
+    if (password !== confirmPassword) {
+      res.status(401).send({
+        sucess: false,
+        errorMessage: "패스워드가 패스워드 확인란과 다릅니다."
+      });
+      return;
+    }
+
     // 비밀번호 6자리 이상 체크
     if (password.length < 6) {
       res.status(402).send({
@@ -47,11 +55,17 @@ router.post("/users", async (req, res) => {
       return;
     }
 
-    // 비밀번호 확인 체크
-    if (password !== confirmPassword) {
-      res.status(401).send({
+    const existsEmail = await User.findAll({
+      where: {
+        email
+      }
+    });
+
+    // email 중복 체크
+    if (existsEmail.length) {
+      res.status(403).send({
         sucess: false,
-        errorMessage: "패스워드가 패스워드 확인란과 다릅니다."
+        errorMessage: "이메일이 이미 사용중입니다."
       });
       return;
     }
@@ -65,25 +79,12 @@ router.post("/users", async (req, res) => {
       return;
     }
 
-    // email 중복 체크
-    const existsUsers = await User.findAll({
-      where: {
-        email
-      }
-    });
-    if (existsUsers.length) {
-      res.status(403).send({
-        sucess: false,
-        errorMessage: "이메일이 이미 사용중입니다."
-      });
-      return;
-    }
-
-    await User.create({ email, nickname, password: hash, salt, createdAt, updatedAt: createdAt });
+    // 계정 생성
+    await User.create({ email, nickname, password: hash, salt, createdAt });
     res.status(201).send({
       sucess: true,
       message: "회원가입에 성공했습니다.",
-      data: { email, nickname, createdAt, updatedAt: createdAt }
+      data: { email, nickname, createdAt }
     });
   } catch (error) {
     res.status(500).send({
@@ -93,7 +94,6 @@ router.post("/users", async (req, res) => {
   }
 });
 
-const { Products } = require("../models");
 //로그인
 router.post("/auth", async (req, res) => {
   const { email, password } = req.body;
@@ -106,11 +106,11 @@ router.post("/auth", async (req, res) => {
     });
 
     // 이메일, 비밀번호 확인
-    const emailChk = user.email === email ? 0 : 1;
-    const isValid = verifyPassword(password, user.password, user.salt);
+    const emailChk = user.email === email ? 1 : 0;
+    const passwordChk = verifyPassword(password, user.password, user.salt);
 
     // NOTE: 인증 메세지는 자세히 설명하지 않는것을 원칙으로 한다: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#authentication-responses
-    if (!user || !isValid || emailChk) {
+    if (!user || !passwordChk || !emailChk) {
       res.status(405).send({
         sucess: false,
         errorMessage: "이메일 또는 패스워드가 틀렸습니다."
